@@ -6,6 +6,28 @@ page_debug.html
 # Browser session & debug artifacts
 chrome_profile/
 screenshots/
+output_v3/
+_tmp_profile/
+
+# Scraped HTML dumps
+*.html
+
+# Magnet / search result data
+search_*.json
+search_*.txt
+*磁力*.json
+*磁力*.md
+*磁力*.txt
+*作品清单*.json
+*作品清单*.md
+*抓取*.json
+*_works.json
+hot_posts.json
+磁力*.json
+
+# Actor tracking lists (private)
+actors.json
+aliases.json
 
 # Python
 __pycache__/

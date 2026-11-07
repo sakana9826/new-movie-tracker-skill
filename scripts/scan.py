@@ -17,6 +17,8 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
+from sehuatang_common import is_age_gate, pass_age_gate
+
 SKILL_DIR = Path(__file__).parent.parent
 
 CJK_SIMPLIFIED_CHARS = str.maketrans({
@@ -412,6 +414,10 @@ def extract_magnets(page, href: str, forum_url: str) -> list[str]:
     try:
         page.goto(full_url, wait_until="domcontentloaded", timeout=30000)
         page.wait_for_timeout(2000)
+        if is_age_gate(page):
+            pass_age_gate(page)
+            page.goto(full_url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(2000)
 
         magnet_anchors = page.locator('a[href^="magnet:"]')
         for i in range(magnet_anchors.count()):
@@ -489,6 +495,13 @@ def scrape(args):
                     print(f"[info] opening page {page_num}: {url}")
                     page.goto(url, wait_until="domcontentloaded", timeout=30000)
                     page.wait_for_timeout(3000)
+
+                    # 自动过"满18岁，请点此进入"年龄确认页（与全量抓取脚本同一套逻辑）
+                    if is_age_gate(page):
+                        pass_age_gate(page)
+                        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                        page.wait_for_timeout(3000)
+
 
                     title = page.title()
                     content = page.content()
