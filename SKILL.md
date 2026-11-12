@@ -101,11 +101,13 @@ If the user wants to override actors for a single run:
 python scripts/scan.py --actors 佐々木さき 楪カレン --days 3
 ```
 
-### 4. Handle Cloudflare
-If the script reports a Cloudflare challenge:
-- In headed mode (default), a Chrome window opens. Advise the user to complete any manual verification if prompted. The script waits up to 90 seconds.
-- After the first successful pass, cookies persist in `chrome_profile/` inside the output directory, making later runs smoother.
-- For fully automated scheduled runs, the user should first pass the challenge once manually, then use `--headless`.
+### 4. Handle Cloudflare & Age Gate
+- The forum's age-confirmation page ("满18岁，请点此进入") is clicked automatically via `scripts/sehuatang_common.py` — no manual action needed.
+- If the script reports a Cloudflare challenge:
+  - In headed mode (default), a Chrome window opens. Advise the user to complete any manual verification if prompted. The script waits up to 90 seconds.
+  - A timeout on the first run is common with a fresh session — simply rerun once; it usually passes on the second attempt.
+  - After the first successful pass, cookies persist in `chrome_profile/` inside the output directory, making later runs smoother.
+- When reporting results over multiple runs, dedupe by **code + magnet hash**, not code alone: the forum re-releases the same title as LTX-model cracks, self-rips, and fan translations with different magnets.
 
 ### 5. Report Results
 Read `result.txt` from the output directory (default: current working directory) and present matched results. Include post date, title, matched actors, link, and **magnet links** when available. Present magnet links directly in the chat response so the user can copy them immediately.

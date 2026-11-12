@@ -8,7 +8,10 @@
 - **多板块监控**：同时扫描 `forum-103`（有码）和 `forum-36`（无码/破解）
 - **智能翻页**：自动翻页并提前停止，避免无效请求
 - **磁力提取**：进入帖子详情页自动抓取 `magnet:?xt=urn:btih:` 链接
-- **Cloudflare 穿透**：复用本地 Chrome 会话，首次验证后自动通行
+- **年龄确认页自动点击**：遇到"满18岁，请点此进入"会自动点击并重进（`sehuatang_common.py` 通用模块，所有脚本共用）
+- **Cloudflare 穿透**：复用本地 Chrome 会话（`chrome_profile/`），首次验证后自动通行
+- **单演员全量搜索**：按演员名搜索其全部作品并发帖记录，输出作品清单和磁力清单
+- **中日文别名匹配**：`aliases.json` 维护别名组，标题用中文名/日文名都能命中
 
 ## 安装
 
@@ -88,6 +91,14 @@ Agent 会调用 `scripts/scan.py` 运行扫描并返回结果。
 
 因为目标网站有 Cloudflare 防护，**第一次运行时会弹出一个 Chrome 窗口**。如果出现人机验证请手动完成（最多等待 90 秒）。验证通过后，会话信息保存在 `chrome_profile/` 中，后续运行无需再次验证。
 
+论坛的年龄确认页（"满18岁，请点此进入"）不需要手动处理，脚本会自动点击。
+
+> 实测经验：新开浏览器会话偶尔会在首页撞上 Cloudflare "请稍候…" 挑战并超时，**直接重跑一次通常就能通过**。个别帖子详情页可能反复卡在挑战页（疑似帖子本身受限），换个时间再试或手动打开查看。
+
+### 结果去重提示
+
+论坛目前存在大量"同番号、不同源"的帖子（LTX 模型破解、自提征用、自译征用等反复放出）。判断是否真的有新内容时，应按 **番号 + 磁力链接 hash** 比对，而不是只看番号——同一个番号隔几天可能出新画质版本，值得换源重下。
+
 ## 手动运行脚本（不依赖 Agent）
 
 ```bash
@@ -104,6 +115,13 @@ python scripts/scan.py --actors 佐々木さき 楪カレン --days 3 --fetch-ma
 
 # 从文件夹导入并保存
 python scripts/scan.py --actors-dir "D:\Movies\Actors" --save-actors
+
+# 单演员全量搜索（搜出该演员全部作品帖 + 磁力，输出作品清单）
+python scripts/search_actor.py "彩月七緒"
+
+# 全量磁力抓取（配合搜索结果批量进详情页抓磁力，再合并去重）
+python scripts/fetch_magnets_all.py
+python scripts/merge_magnets.py
 ```
 
 完整参数说明见 [reference.md](reference.md)。
@@ -112,14 +130,22 @@ python scripts/scan.py --actors-dir "D:\Movies\Actors" --save-actors
 
 ```
 new-movie-tracker/
-├── SKILL.md           # Agent 指令文件
-├── README.md          # 本文件
-├── actors.json        # 演员清单（由 Agent 自维护）
-├── aliases.json       # 中日文别名映射
-├── reference.md       # 详细参数与排错文档
+├── SKILL.md               # Agent 指令文件
+├── README.md              # 本文件
+├── actors.json            # 演员清单（由 Agent 自维护，不入库）
+├── aliases.json           # 中日文别名映射（不入库）
+├── reference.md           # 详细参数与排错文档
+├── hot_posts.json         # 热帖缓存
+├── chrome_profile/        # 持久化浏览器会话（勿删，不入库）
 ├── .gitignore
 └── scripts/
-    └── scan.py        # 核心扫描脚本
+    ├── scan.py            # 核心扫描脚本（论坛增量更新 + 磁力提取）
+    ├── scan_hot.py        # 热帖扫描
+    ├── search_actor.py    # 单演员全量搜索（作品清单 + 磁力清单）
+    ├── fetch_magnets.py   # 磁力详情页批量抓取（列表输入）
+    ├── fetch_magnets_all.py  # 全量磁力抓取（分页翻完）
+    ├── merge_magnets.py   # 多次抓取结果合并去重
+    └── sehuatang_common.py   # 通用模块：年龄确认页自动点击、访问保活
 ```
 
 ## 常见问题
@@ -134,7 +160,10 @@ A: 脚本使用「子字符串匹配」。如果论坛标题使用了别名、�
 A: 检查 `actors.json` 中是否有过于简短或通用的名字（如 `000`、`fc2` 之类）。直接编辑删除即可。
 
 **Q: 磁力链接提取失败？**  
-A: 部分帖子可能使用网盘链接或其他分享方式，没有磁力链。此时结果中会显示 `magnets: (none found)`。
+A: 部分帖子可能使用网盘链接或其他分享方式，没有磁力链。此时结果中会显示 `magnets: (none found)`。个别帖子详情页会一直卡在 Cloudflare "请稍候…"（疑似帖子受限），可稍后重试或手动打开查看。
+
+**Q: 同一部片反复出现？**  
+A: 论坛会持续放出同一番号的更好版本（LTX 模型破解 > 新模型破解 > 普通破解，另有自提征用/自译征用）。按「番号 + 磁力 hash」判断新旧，画质更好的版本值得换源重下。
 
 ## License
 
